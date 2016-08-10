@@ -1,6 +1,5 @@
 #!/bin/bash
-DOCKER_SONARQUBE="sonarqube"
-DOCKER_MYSQL="mysql"
+. ./const.sh
 if [[ $(basename $0) != "sonarqube_service_setup.sh" ]] ; then
   echo "Wrong way to execute sonarqube_service_setup.sh"
   exit 1
@@ -46,7 +45,7 @@ docker run -d --name sonarqube \
   -e SONARQUBE_JDBC_URL='jdbc:mysql://mysql:3306/sonar?useUnicode=true&characterEncoding=utf8&useSSL=false' \
   $DOCKER_SONARQUBE
 printf "SonarQube started"
-./download_sonarqube_plugins.sh
+./install_sonarqube_plugins.sh
 ./pull_github_repos.sh
-#wait{!}
+./sonar_scanner_setup.sh
 #./analyze_projects.sh
