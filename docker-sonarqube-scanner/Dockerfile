@@ -1,4 +1,6 @@
 FROM java:8
+ENV SONAR_LOGIN=admin \
+ SONAR_PASSWORD=
 
 RUN apt-get update && \
  apt-get -y install curl && \
@@ -23,4 +25,4 @@ RUN curl -OL https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sona
 ENV SONAR_RUNNER_HOME=/root/sonar-scanner-2.6.1
 ENV PATH $PATH:/root/sonar-scanner-2.6.1/bin
 
-CMD sonar-scanner -Dsonar.projectBaseDir=./src
+CMD sonar-scanner -Dsonar.projectBaseDir=./src -Dsonar.login=$SONAR_LOGIN -Dsonar.password=$SONAR_PASSWORD
