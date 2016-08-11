@@ -5,8 +5,13 @@ RUN apt-get update && \
  rm -f /var/cache/apt/archives/*deb && \
  find /var/lib/apt/lists/ -type f -delete && \
  find /var/log/ -type f -delete
-RUn apt-get update && \
+RUN apt-get update && \
  apt-get -y install maven && \
+ rm -f /var/cache/apt/archives/*deb && \
+ find /var/lib/apt/lists/ -type f -delete && \
+ find /var/log/ -type f -delete
+RUN apt-get update && \
+ apt-get -y install --fix-missing && \
  rm -f /var/cache/apt/archives/*deb && \
  find /var/lib/apt/lists/ -type f -delete && \
  find /var/log/ -type f -delete
@@ -18,4 +23,4 @@ RUN curl -OL https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sona
 ENV SONAR_RUNNER_HOME=/root/sonar-scanner-2.6.1
 ENV PATH $PATH:/root/sonar-scanner-2.6.1/bin
 
-CMD sonar-runner -Dsonar.projectBaseDir=./src
+CMD sonar-scanner -Dsonar.projectBaseDir=./src

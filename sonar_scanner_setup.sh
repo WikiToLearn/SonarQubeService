@@ -42,6 +42,10 @@ sonar.projectVersion=0.1.0
 sonar.sources=.
 EOF
   	printf "%s\n" "$project configuration file created!"
-    docker run --rm --link sonarqube:sonarcube --link sonarqube-mysql:mysql -v $(pwd):/root/src wikitolearn/sonarqube-scanner
+    while ! wget -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Networks.bridge.IPAddress }}' sonarqube):9000
+    do
+      sleep 1
+    done
+    docker run --rm --link sonarqube:sonarqube --link sonarqube-mysql:mysql -v $(pwd):/root/src wikitolearn/sonarqube-scanner
   done <../"$PROJECTS_LIST"
 fi

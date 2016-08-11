@@ -35,7 +35,7 @@ while ! docker exec sonarqube-mysql mysql -uroot -pwikitolearn sonar -e "SELECT 
     sleep 1
   done
 printf "MySQL started!"
-docker run -d --name sonarqube \
+docker create --name sonarqube \
   --link sonarqube-mysql:mysql \
   -p 9000:9000 -p 9092:9092 \
   -v sonarqube-data:/opt/sonarqube/data \
@@ -44,11 +44,7 @@ docker run -d --name sonarqube \
   -e SONARQUBE_JDBC_PASSWORD=wikitosonar \
   -e SONARQUBE_JDBC_URL='jdbc:mysql://mysql:3306/sonar?useUnicode=true&characterEncoding=utf8&useSSL=false' \
   $DOCKER_SONARQUBE
-printf "SonarQube started"
-while ! wget -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Networks.bridge.IPAddress }}' sonarqube):9000
-do
-  sleep 1
-done
+printf "SonarQube created!"
 
 if [[ -f $SONARQUBE_PLUGINS_LIST ]] ; then
   test -d "SonarQubePlugins" || mkdir "SonarQubePlugins"
@@ -64,7 +60,7 @@ if [[ -f $SONARQUBE_PLUGINS_LIST ]] ; then
 		printf "%s\n" "$plugin plugin added!"
 	done < ../"$SONARQUBE_PLUGINS_LIST"
   cd ..
-  echo "Restarting $DOCKER_SONARQUBE docker..."
-  docker restart $DOCKER_SONARQUBE
-  echo "$DOCKER_SONARQUBE restarted!"
+  echo "Starting $DOCKER_SONARQUBE docker..."
+  docker start $DOCKER_SONARQUBE
+  echo "$DOCKER_SONARQUBE started!"
 fi
