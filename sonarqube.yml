@@ -1,0 +1,26 @@
+---
+- hosts: all
+  max_fail_percentage: 0
+
+  tasks:
+  - name: install_docker
+    shell: wget -O docker-install.sh https://get.docker.com/ && chmod +x docker-install.sh && ./docker-install.sh && rm -f ./docker-install.sh
+  - name: add_user_to_docker
+    shell: usermod -aG docker debian
+  - name: apt_update
+    apt: update_cache=yes
+  - name: install_git_and_curl
+    apt: package={{ item }} state=latest
+    with_items:
+      - git
+      - curl
+  - name: copy_const_script
+    copy: src=const.sh dest=/root/const.sh mode=0755
+  - name: copy_service_setup_script
+    copy: src=sonarqube_service_setup.sh dest=/root/sonarqube_service_setup.sh mode=0755
+  - name: copy_scanner_setup_script
+    copy: src=sonar_scanner_setup.sh dest=/root/sonar_scanner_setup.sh mode=0755
+  - name: execute_sonarqube_service_setup
+    command: /root/sonarqube_service_setup.sh
+  - name: execute_sonar_scanner_setup
+    command: /root/sonar_scanner_setup.sh
