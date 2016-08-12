@@ -4,48 +4,36 @@ if [[ $(basename $0) != "sonar_scanner_setup.sh" ]] ; then
   exit 1
 fi
 . ./const.sh
-
 docker build -t wikitolearn/sonarqube-scanner docker-sonarqube-scanner
-
-if [[ -f $PROJECTS_LIST ]] ; then
-  test -d "ProjectToBeAnalyzed" || mkdir "ProjectToBeAnalyzed"
-  cd "ProjectToBeAnalyzed"
-  ProjectToBeAnalyzedDIR=$(pwd)
-	while IFS= read -r project
-	do
-    cd $ProjectToBeAnalyzedDIR
-		URL="https://github.com/"$project
-		if test ! -d $project ; then
-      mkdir -p $project
-      rmdir $project
-      git clone $URL $project
+cd ProjectToBeAnalyzed
+ProjectToBeAnalyzedDIR=$(pwd)
+for file in $(find $(pwd) -name sonar-project.properties);
+do
+  while IFS= read -r property
+  do
+    property_name=`echo $property | awk -F"=" '{ print $1 }'`
+    if [[ "$property_name" = "sonar.projectName" ]] ; then
+      project_name=`echo $property | awk -F"=" '{ print $2 }'`
+      cd $project_name
     fi
-		cd $project
-		git pull origin master
-		git checkout master
-		printf "%s\n" "$project pulled!"
-	done <../"$PROJECTS_LIST"
-
+    if [[ "$property_name" = "sonar.links.homepage" &&  ! -z "$project_name" ]] ; then
+      url_repo=`echo $property | awk -F"=" '{ print $2 }'`
+      mkdir "src"
+      cd "src"
+      git clone $url_repo .
+      git pull origin master
+      git checkout master
+      cd ..
+    fi
+  done <$file
+  project_key=$(echo $project_name | sha256sum | awk '{ print $1 }')
+  grep -q -F "sonar.projectKey=$project_key" $file || echo sonar.projectKey=$project_key >> $file
+  printf "%s\n" "$project_name configuration updated!"
+  printf "%s\n" "Staring analisys..."
+  while ! wget -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Networks.bridge.IPAddress }}' sonarqube):9000
+  do
+    sleep 1
+  done
+  docker run --rm --link sonarqube:sonarqube --link sonarqube-mysql:mysql -e SONAR_PASSWORD=$RANDOM_PW -v $(pwd):/root/src wikitolearn/sonarqube-scanner
   cd $ProjectToBeAnalyzedDIR
-
-	while IFS= read -r project
-	do
-    cd $ProjectToBeAnalyzedDIR
-    cd $project
-    project_key=$(echo $project | sha256sum | awk '{ print $1 }')
-    cat <<EOF > sonar-project.properties
-sonar.host.url=http://sonarqube:9000
-sonar.sourceEncoding=UTF-8
-sonar.projectKey=$project_key
-sonar.projectName=$project
-sonar.projectVersion=0.1.0
-sonar.sources=.
-EOF
-  	printf "%s\n" "$project configuration file created!"
-    while ! wget -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Networks.bridge.IPAddress }}' sonarqube):9000
-    do
-      sleep 1
-    done
-    docker run --rm --link sonarqube:sonarqube --link sonarqube-mysql:mysql -e SONAR_LOGIN="admin" -e SONAR_PASSWORD=$RANDOM_PW -v $(pwd):/root/src wikitolearn/sonarqube-scanner
-  done <../"$PROJECTS_LIST"
-fi
+done

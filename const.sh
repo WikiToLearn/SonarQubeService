@@ -1,8 +1,11 @@
 #!/bin/bash
-ENV_PROPERTIES_FILE="env.properties"
-if [[ -f $ENV_PROPERTIES_FILE ]] ; then
-  while IFS= read -r property
-  do
-    export $property
-  done < "$ENV_PROPERTIES_FILE"
+export DOCKER_SONARQUBE="sonarqube"
+export DOCKER_MYSQL="mysql"
+export SONARQUBE_PLUGINS_LIST="sonarqube_plugins.list"
+export PROJECTS_LIST="projects.list"
+if test -d "conf" && test -f "conf/random_pw.conf"; then
+  cd "conf"
+  random_pw=$(<random_pw.conf)
+  export RANDOM_PW=$random_pw
+  cd ..
 fi

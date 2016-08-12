@@ -74,4 +74,11 @@ SETUP_TOKEN=$(curl -u admin:$RANDOM_PW --request POST 'localhost:9000/api/user_t
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=scan'
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=provisioning'
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/add_group' --data 'groupName=sonar-administrators&permission=scan'
-echo RANDOM_PW=$RANDOM_PW >> env.properties
+if ! test -d "conf"; then
+  mkdir "conf"
+fi
+cd "conf"
+cat <<EOF > random_pw.conf
+$RANDOM_PW
+EOF
+cd ..

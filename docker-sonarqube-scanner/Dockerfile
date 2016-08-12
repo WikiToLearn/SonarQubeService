@@ -1,5 +1,5 @@
 FROM java:8
-ENV SONAR_LOGIN= \
+ENV SONAR_LOGIN=admin \
  SONAR_PASSWORD=
 
 RUN apt-get update && \

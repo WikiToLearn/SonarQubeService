@@ -1,2 +1,4 @@
 /SonarQubePlugins/
-/ProjectToBeAnalyzed/
+**/src
+**/.sonar
+/conf/
