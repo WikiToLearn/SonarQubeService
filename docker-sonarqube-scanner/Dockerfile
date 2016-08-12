@@ -1,5 +1,5 @@
 FROM java:8
-ENV SONAR_LOGIN=admin \
+ENV SONAR_LOGIN= \
  SONAR_PASSWORD=
 
 RUN apt-get update && \
@@ -9,11 +9,6 @@ RUN apt-get update && \
  find /var/log/ -type f -delete
 RUN apt-get update && \
  apt-get -y install maven && \
- rm -f /var/cache/apt/archives/*deb && \
- find /var/lib/apt/lists/ -type f -delete && \
- find /var/log/ -type f -delete
-RUN apt-get update && \
- apt-get -y install --fix-missing && \
  rm -f /var/cache/apt/archives/*deb && \
  find /var/lib/apt/lists/ -type f -delete && \
  find /var/log/ -type f -delete

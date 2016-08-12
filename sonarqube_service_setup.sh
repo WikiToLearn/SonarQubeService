@@ -68,10 +68,10 @@ while ! wget -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Network
 do
   sleep 1
 done
-export RANDOM_PW=$(date +%s | sha256sum | base64 | head -c 16)
+RANDOM_PW=$(date +%s | sha256sum | base64 | head -c 16)
 curl -u admin:admin --request POST 'localhost:9000/api/users/change_password' --data "login=admin&password=$RANDOM_PW&previousPassword=admin"
 SETUP_TOKEN=$(curl -u admin:$RANDOM_PW --request POST 'localhost:9000/api/user_tokens/generate' --data 'login=admin&name=SetupManagement' | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["token"])')
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=scan'
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=provisioning'
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/add_group' --data 'groupName=sonar-administrators&permission=scan'
-echo "export RANDOM_PW=\"$RANDOM_PW\"" >> const.sh
+echo RANDOM_PW=$RANDOM_PW >> env.properties

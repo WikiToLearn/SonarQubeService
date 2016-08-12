@@ -46,6 +46,6 @@ EOF
     do
       sleep 1
     done
-    docker run --rm --link sonarqube:sonarqube --link sonarqube-mysql:mysql -e SONAR_PASSWORD=$RANDOM_PW -v $(pwd):/root/src wikitolearn/sonarqube-scanner
+    docker run --rm --link sonarqube:sonarqube --link sonarqube-mysql:mysql -e SONAR_LOGIN="admin" -e SONAR_PASSWORD=$RANDOM_PW -v $(pwd):/root/src wikitolearn/sonarqube-scanner
   done <../"$PROJECTS_LIST"
 fi
