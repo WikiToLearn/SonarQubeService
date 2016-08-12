@@ -7,20 +7,20 @@ fi
 
 echo "** SonarQube Service Setup **"
 printf "%s\n" "Pulling docker images..."
-if ! docker pull $DOCKER_MYSQL ; then
-	printf "%s\n" "Failed pull for '$DOCKER_MYSQL'"
+if ! docker pull $DOCKER_MYSQL:$DOCKER_MYSQL_VERSION ; then
+	printf "%s\n" "Failed pull for '$DOCKER_MYSQL:$DOCKER_MYSQL_VERSION'"
 fi
-printf "%s\n" "'$DOCKER_MYSQL' pulled, inspecting..."
-if ! docker inspect $DOCKER_MYSQL &> /dev/null ; then
-	printf "%s\n" "Error downloading '$DOCKER_MYSQL' image. Check the connection and then restart the script!"
+printf "%s\n" "'$DOCKER_MYSQL:$DOCKER_MYSQL_VERSION' pulled, inspecting..."
+if ! docker inspect $DOCKER_MYSQL:$DOCKER_MYSQL_VERSION &> /dev/null ; then
+	printf "%s\n" "Error downloading '$DOCKER_MYSQL:$DOCKER_MYSQL_VERSION' image. Check the connection and then restart the script!"
 	exit 1
 fi
-if ! docker pull $DOCKER_SONARQUBE ; then
-	printf "%s\n" "Failed pull for '$DOCKER_SONARQUBE'"
+if ! docker pull $DOCKER_SONARQUBE:$DOCKER_SONARQUBE_VERSION ; then
+	printf "%s\n" "Failed pull for '$DOCKER_SONARQUBE:$DOCKER_SONARQUBE_VERSION'"
 fi
-printf "%s\n" "'$DOCKER_SONARQUBE' pulled, inspecting..."
-if ! docker inspect $DOCKER_SONARQUBE &> /dev/null ; then
-	printf "%s\n" "Error downloading '$DOCKER_SONARQUBE' image. Check the connection and then restart the script!"
+printf "%s\n" "'$DOCKER_SONARQUBE:$DOCKER_SONARQUBE_VERSION' pulled, inspecting..."
+if ! docker inspect $DOCKER_SONARQUBE:$DOCKER_SONARQUBE_VERSION &> /dev/null ; then
+	printf "%s\n" "Error downloading '$DOCKER_SONARQUBE:$DOCKER_SONARQUBE_VERSION' image. Check the connection and then restart the script!"
 	exit 1
 fi
 if [[ $(docker ps -qa --filter name='sonarqube-mysql$' | wc -l) -eq 0 ]] ; then
@@ -30,7 +30,7 @@ if [[ $(docker ps -qa --filter name='sonarqube-mysql$' | wc -l) -eq 0 ]] ; then
     -e MYSQL_USER=sonarqube \
     -e MYSQL_PASSWORD=wikitosonar \
     -v sonarqube-mysql-var-lib-mysql:/var/lib/mysql \
-    $DOCKER_MYSQL --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    $DOCKER_MYSQL:$DOCKER_MYSQL_VERSION --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 fi
 docker start sonarqube-mysql
 while ! docker exec sonarqube-mysql mysql -uroot -pwikitolearn sonar -e "SELECT 1" &> /dev/null
@@ -49,7 +49,7 @@ if [[ $(docker ps -qa --filter name='sonarqube$' | wc -l) -eq 0 ]] ; then
     -e SONARQUBE_JDBC_USERNAME=sonarqube \
     -e SONARQUBE_JDBC_PASSWORD=wikitosonar \
     -e SONARQUBE_JDBC_URL='jdbc:mysql://mysql:3306/sonar?useUnicode=true&characterEncoding=utf8&useSSL=false' \
-    $DOCKER_SONARQUBE
+    $DOCKER_SONARQUBE:$DOCKER_SONARQUBE_VERSION
   printf "SonarQube created!"
 fi
 
@@ -82,8 +82,13 @@ if [[ "$RANDOM_PW" == "" ]] ; then
 fi
 if ! curl -u admin:admin --request POST 'localhost:9000/api/users/change_password' --data "login=admin&password=$RANDOM_PW&previousPassword=admin" ; then
     echo "Default login data not available"
+    exit 1
 fi
-# FIXME: check if the new password is valid
+CHECK_AUTH=$(curl -u admin:$RANDOM_PW --request GET 'localhost:9000/api/authentication/validate' | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["valid"])')
+if [[ "${CHECK_AUTH,,}" != 'true' ]]; then
+  echo "Sorry :( Cannot authenticate! Login or password incorrect."
+  exit 1
+fi
 SETUP_TOKEN=$(curl -u admin:$RANDOM_PW --request POST 'localhost:9000/api/user_tokens/generate' --data 'login=admin&name=SetupManagement' | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["token"])')
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=scan'
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=provisioning'
