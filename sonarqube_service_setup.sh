@@ -4,6 +4,7 @@ if [[ $(basename $0) != "sonarqube_service_setup.sh" ]] ; then
   exit 1
 fi
 . ./const.sh
+
 echo "** SonarQube Service Setup **"
 printf "%s\n" "Pulling docker images..."
 if ! docker pull $DOCKER_MYSQL ; then
@@ -22,29 +23,35 @@ if ! docker inspect $DOCKER_SONARQUBE &> /dev/null ; then
 	printf "%s\n" "Error downloading '$DOCKER_SONARQUBE' image. Check the connection and then restart the script!"
 	exit 1
 fi
-docker run --name sonarqube-mysql \
-  -e MYSQL_ROOT_PASSWORD=wikitolearn \
-  -e MYSQL_DATABASE=sonar \
-  -e MYSQL_USER=sonarqube \
-  -e MYSQL_PASSWORD=wikitosonar \
-  -v sonarqube-mysql-var-lib-mysql:/var/lib/mysql \
-  -d $DOCKER_MYSQL --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+if [[ $(docker ps -qa --filter name='sonarqube-mysql$' | wc -l) -eq 0 ]] ; then
+  docker create --name sonarqube-mysql \
+    -e MYSQL_ROOT_PASSWORD=wikitolearn \
+    -e MYSQL_DATABASE=sonar \
+    -e MYSQL_USER=sonarqube \
+    -e MYSQL_PASSWORD=wikitosonar \
+    -v sonarqube-mysql-var-lib-mysql:/var/lib/mysql \
+    $DOCKER_MYSQL --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+fi
+docker start sonarqube-mysql
 while ! docker exec sonarqube-mysql mysql -uroot -pwikitolearn sonar -e "SELECT 1" &> /dev/null
   do
     printf "%s\n" "Waiting for mysql... (this can take some time, usually less then 1 minute)"
     sleep 1
   done
 printf "MySQL started!"
-docker create --name sonarqube \
-  --link sonarqube-mysql:mysql \
-  -p 9000:9000 -p 9092:9092 \
-  -v sonarqube-data:/opt/sonarqube/data \
-  -v sonarqube-extensions:/opt/sonarqube/extensions \
-  -e SONARQUBE_JDBC_USERNAME=sonarqube \
-  -e SONARQUBE_JDBC_PASSWORD=wikitosonar \
-  -e SONARQUBE_JDBC_URL='jdbc:mysql://mysql:3306/sonar?useUnicode=true&characterEncoding=utf8&useSSL=false' \
-  $DOCKER_SONARQUBE
-printf "SonarQube created!"
+
+if [[ $(docker ps -qa --filter name='sonarqube$' | wc -l) -eq 0 ]] ; then
+  docker create --name sonarqube \
+    --link sonarqube-mysql:mysql \
+    -p 9000:9000 -p 9092:9092 \
+    -v sonarqube-data:/opt/sonarqube/data \
+    -v sonarqube-extensions:/opt/sonarqube/extensions \
+    -e SONARQUBE_JDBC_USERNAME=sonarqube \
+    -e SONARQUBE_JDBC_PASSWORD=wikitosonar \
+    -e SONARQUBE_JDBC_URL='jdbc:mysql://mysql:3306/sonar?useUnicode=true&characterEncoding=utf8&useSSL=false' \
+    $DOCKER_SONARQUBE
+  printf "SonarQube created!"
+fi
 
 if [[ -f $SONARQUBE_PLUGINS_LIST ]] ; then
   test -d "SonarQubePlugins" || mkdir "SonarQubePlugins"
@@ -64,12 +71,19 @@ if [[ -f $SONARQUBE_PLUGINS_LIST ]] ; then
   docker start $DOCKER_SONARQUBE
   echo "$DOCKER_SONARQUBE started!"
 fi
-while ! wget -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Networks.bridge.IPAddress }}' sonarqube):9000
+while ! wget --timeout=1 -O /dev/null $(docker inspect --format '{{ .NetworkSettings.Networks.bridge.IPAddress }}' sonarqube):9000
 do
   sleep 1
 done
-RANDOM_PW=$(date +%s | sha256sum | base64 | head -c 16)
-curl -u admin:admin --request POST 'localhost:9000/api/users/change_password' --data "login=admin&password=$RANDOM_PW&previousPassword=admin"
+
+if [[ "$RANDOM_PW" == "" ]] ; then
+    echo "Create new admin password"
+    export RANDOM_PW=$(date +%s | sha256sum | base64 | head -c 16)
+fi
+if ! curl -u admin:admin --request POST 'localhost:9000/api/users/change_password' --data "login=admin&password=$RANDOM_PW&previousPassword=admin" ; then
+    echo "Default login data not available"
+fi
+# FIXME: check if the new password is valid
 SETUP_TOKEN=$(curl -u admin:$RANDOM_PW --request POST 'localhost:9000/api/user_tokens/generate' --data 'login=admin&name=SetupManagement' | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["token"])')
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=scan'
 curl -u $SETUP_TOKEN: --request POST 'localhost:9000/api/permissions/remove_group' --data 'groupName=anyone&permission=provisioning'
