@@ -14,13 +14,10 @@
     with_items:
       - git
       - curl
-  - name: copy_const_script
-    copy: src=const.sh dest=/root/const.sh mode=0755
-  - name: copy_service_setup_script
-    copy: src=sonarqube_service_setup.sh dest=/root/sonarqube_service_setup.sh mode=0755
-  - name: copy_scanner_setup_script
-    copy: src=sonar_scanner_setup.sh dest=/root/sonar_scanner_setup.sh mode=0755
+  - name: copy_source_directory
+    copy: src=. dest=/root/ mode=0755
   - name: execute_sonarqube_service_setup
-    command: /root/sonarqube_service_setup.sh
+  #FIXME /root/SonarQubeService/sonarqube_service_setup.sh: riga 6: ./const.sh: File o directory non esistente
+    command: /root/SonarQubeService/sonarqube_service_setup.sh
   - name: execute_sonar_scanner_setup
-    command: /root/sonar_scanner_setup.sh
+    command: /root/SonarQubeService/sonar_scanner_setup.sh
