@@ -3,6 +3,7 @@ if [[ $(basename $0) != "sonar_scanner_setup.sh" ]] ; then
   echo "Wrong way to execute sonar_scanner_setup.sh"
   exit 1
 fi
+cd $(dirname $(realpath $0))
 . ./const.sh
 docker build -t wikitolearn/sonarqube-scanner docker-sonarqube-scanner
 cd ProjectToBeAnalyzed
@@ -18,9 +19,10 @@ do
     fi
     if [[ "$property_name" = "sonar.links.homepage" &&  ! -z "$project_name" ]] ; then
       url_repo=`echo $property | awk -F"=" '{ print $2 }'`
-      mkdir "src"
+      if ! test -d "src"; then
+        git clone $url_repo "src"
+      fi
       cd "src"
-      git clone $url_repo .
       git pull origin master
       git checkout master
       cd ..

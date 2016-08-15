@@ -14,10 +14,10 @@
     with_items:
       - git
       - curl
+      - realpath
   - name: copy_source_directory
     copy: src=. dest=/root/ mode=0755
   - name: execute_sonarqube_service_setup
-  #FIXME /root/SonarQubeService/sonarqube_service_setup.sh: riga 6: ./const.sh: File o directory non esistente
     command: /root/SonarQubeService/sonarqube_service_setup.sh
   - name: execute_sonar_scanner_setup
     command: /root/SonarQubeService/sonar_scanner_setup.sh

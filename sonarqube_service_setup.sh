@@ -3,6 +3,7 @@ if [[ $(basename $0) != "sonarqube_service_setup.sh" ]] ; then
   echo "Wrong way to execute sonarqube_service_setup.sh"
   exit 1
 fi
+cd $(dirname $(realpath $0))
 . ./const.sh
 
 echo "** SonarQube Service Setup **"
